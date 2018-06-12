@@ -2,6 +2,7 @@ FROM golang:1.10
 
 COPY . /go/src/github.com/cyverse-de/get-analysis-id
 RUN go install github.com/cyverse-de/get-analysis-id
+RUN go get -u github.com/jstemmer/go-junit-report
 
 ENTRYPOINT ["get-analysis-id"]
 CMD ["--help"]
