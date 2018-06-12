@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	_ "expvar"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -94,7 +95,7 @@ func main() {
 		useSSL = true
 	}
 
-	r := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var rb []byte
 		rb, err = ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -126,14 +127,10 @@ func main() {
 		json.NewEncoder(w).Encode(analysis)
 	})
 
-	server := &http.Server{
-		Handler: r,
-		Addr:    fmt.Sprintf(":%d", *listenPort),
-	}
+	addr := fmt.Sprintf(":%d", *listenPort)
 	if useSSL {
-		err = server.ListenAndServeTLS(*sslCert, *sslKey)
+		log.Fatal(http.ListenAndServeTLS(addr, *sslCert, *sslKey, nil))
 	} else {
-		err = server.ListenAndServe()
+		log.Fatal(http.ListenAndServe(addr, nil))
 	}
-	log.Fatal(err)
 }
