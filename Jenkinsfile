@@ -29,7 +29,7 @@ node('docker') {
         dockerPusher = "push-${env.BUILD_TAG}"
         try {
             stage "Test"
-            sh "docker run --rm --name ${dockerTestRunner} --entrypoint 'sh' ${dockerRepo} -c \"go test -v github.com/cyverse-de/${service.repo} | tee /dev/stderr"
+            sh "docker run --rm --name ${dockerTestRunner} --entrypoint 'go' ${dockerRepo} -c \"test -v github.com/cyverse-de/${service.repo}"
 
 
             milestone 100
@@ -62,10 +62,10 @@ node('docker') {
 
             sh returnStatus: true, script: "docker rmi ${dockerRepo}"
 
-            step([$class: 'hudson.plugins.jira.JiraIssueUpdater',
-                    issueSelector: [$class: 'hudson.plugins.jira.selector.DefaultIssueSelector'],
-                    scm: scm,
-                    labels: [ "${service.repo}-${descriptive_version}" ]])
+            //step([$class: 'hudson.plugins.jira.JiraIssueUpdater',
+            //        issueSelector: [$class: 'hudson.plugins.jira.selector.DefaultIssueSelector'],
+            //        scm: scm,
+            //        labels: [ "${service.repo}-${descriptive_version}" ]])
         }
     } catch (InterruptedException e) {
         currentBuild.result = "ABORTED"
