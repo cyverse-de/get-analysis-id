@@ -25,7 +25,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: get-analysis-id
-        image: discoenv/get-analysis-id
+        image: harbor.cyverse.org/de/get-analysis-id
         resources:
           requests:
             cpu: "1m"

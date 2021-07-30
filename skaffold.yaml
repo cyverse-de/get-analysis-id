@@ -10,5 +10,5 @@ build:
   tagPolicy:
     gitCommit: {}
   artifacts:
-  - image: discoenv/get-analysis-id
+  - image: harbor.cyverse.org/de/get-analysis-id
   local: {}
