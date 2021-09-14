@@ -124,7 +124,7 @@ func main() {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(analysis)
+		json.NewEncoder(w).Encode(analysis) // nolint:errcheck
 	})
 
 	addr := fmt.Sprintf(":%d", *listenPort)
