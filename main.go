@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	_ "expvar"
@@ -11,7 +12,14 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+
+	"github.com/cyverse-de/go-mod/otelutils"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
+
+var httpClient = http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+
+const serviceName = "get-analysis-id"
 
 // Analysis contains the ID for the Analysis, which gets used as the resource
 // name when checking permissions.
@@ -25,7 +33,7 @@ type Analyses struct {
 }
 
 // GetAnalysisID returns the Analysis ID returned for the given external ID.
-func GetAnalysisID(appsURL, appsUser, externalID string) (*Analysis, error) {
+func GetAnalysisID(ctx context.Context, appsURL, appsUser, externalID string) (*Analysis, error) {
 	reqURL, err := url.Parse(appsURL)
 	if err != nil {
 		return nil, err
@@ -36,12 +44,15 @@ func GetAnalysisID(appsURL, appsUser, externalID string) (*Analysis, error) {
 	v.Set("user", appsUser)
 	reqURL.RawQuery = v.Encode()
 
-	resp, err := http.Get(reqURL.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := httpClient.Do(req)
 	defer func() {
-		if resp != nil {
-			if resp.Body != nil {
-				resp.Body.Close()
-			}
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
 		}
 	}()
 	if err != nil {
@@ -95,7 +106,13 @@ func main() {
 		useSSL = true
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	var tracerCtx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+	shutdown := otelutils.TracerProviderFromEnv(tracerCtx, serviceName, func(e error) { log.Fatal(e) })
+	defer shutdown()
+
+	handler := otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		var rb []byte
 		rb, err = ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -117,7 +134,7 @@ func main() {
 		}
 
 		var analysis *Analysis
-		analysis, err = GetAnalysisID(*appsURL, *appsUser, idReq.ExternalID)
+		analysis, err = GetAnalysisID(ctx, *appsURL, *appsUser, idReq.ExternalID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -125,7 +142,9 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(analysis) // nolint:errcheck
-	})
+	}), "/")
+
+	http.Handle("/", handler)
 
 	addr := fmt.Sprintf(":%d", *listenPort)
 	if useSSL {
