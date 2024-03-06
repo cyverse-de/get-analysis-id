@@ -7,7 +7,7 @@ import (
 	_ "expvar"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -60,7 +60,7 @@ func GetAnalysisID(ctx context.Context, appsURL, appsUser, externalID string) (*
 	}
 
 	analyses := &Analyses{}
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func main() {
 	handler := otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		var rb []byte
-		rb, err = ioutil.ReadAll(r.Body)
+		rb, err = io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
