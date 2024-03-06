@@ -1,7 +1,6 @@
-FROM golang:1.16-alpine
+FROM golang:1.21-alpine
 
 RUN apk add --no-cache git
-RUN go get -u github.com/jstemmer/go-junit-report
 
 COPY . /go/src/github.com/cyverse-de/get-analysis-id
 WORKDIR /go/src/github.com/cyverse-de/get-analysis-id
