@@ -1,6 +1,4 @@
-FROM golang:1.21-alpine
-
-RUN apk add --no-cache git
+FROM golang:1.21
 
 COPY . /go/src/github.com/cyverse-de/get-analysis-id
 WORKDIR /go/src/github.com/cyverse-de/get-analysis-id
